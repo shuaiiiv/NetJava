@@ -7,37 +7,68 @@ import java.net.InetAddress;
 import java.util.Scanner;
 
 public class UDPServer {
+    final static int clientPort=8888;
+    final static int serverPort=8887;
+    static InetAddress address;
+    static {
+        try{
+            address=InetAddress.getByName("localhost");
+        }
+        catch (IOException e) {}
+    }
+
+
     public static void main(String[] args) throws IOException
     {
-        /**
-         * 1.new a scoket
-         * 2.packet data
-         * 3.transmit data
-         * 4.close scoket
-         * */
-        final int port=8887;
-        final int receivePort=8888;
-        InetAddress address=InetAddress.getByName("localhost");
-        byte[] receiveBytes=new byte[1024];
         while(true)
         {
-            Scanner scan=new Scanner(System.in);
-            String input=scan.nextLine();
-            byte[] data=input.getBytes();
-            DatagramSocket socket=new DatagramSocket();
-            DatagramPacket datagramPacket=new DatagramPacket(data,data.length,address,port);
-            socket.send(datagramPacket);
-            socket.close();
+            new Thread()
+            {
+                public void run()
+                {
+                    receiveMessage(clientPort);
+                }
+            }.start();
 
-            DatagramSocket receiveScoket=new DatagramSocket(receivePort);
-            DatagramPacket receivePacket=new DatagramPacket(receiveBytes,receiveBytes.length);
-            receiveScoket.receive(receivePacket);
-            System.out.println("ClientSays-------"+new String(receivePacket.getData(),0,receivePacket.getLength()));
-
-            receiveScoket.close();
-
+            new Thread()
+            {
+                public void run()
+                {
+                    Scanner scan=new Scanner(System.in);
+                    byte[] bytes=scan.nextLine().getBytes();
+                    sendMessage(bytes,address,serverPort);
+                }
+            }.start();
         }
 
     }
 
+
+    public static void sendMessage(byte[] bytes,InetAddress address,int port)
+    {
+        try
+        {
+            DatagramPacket packet=new DatagramPacket(bytes,bytes.length,address,port);
+            DatagramSocket scoket=new DatagramSocket();
+            scoket.send(packet);
+            scoket.close();
+        }
+        catch (IOException e)
+        {
+            System.out.println("fault trasmit");
+        }
+    }
+    public static void receiveMessage(int port)
+    {
+        try{
+            byte[] bytes=new byte[20];
+            DatagramPacket packet=new DatagramPacket(bytes,bytes.length);
+            DatagramSocket socket=new DatagramSocket(port);
+            socket.receive(packet);
+            System.out.println("Client Says-------"+new String(packet.getData(),0,packet.getLength()));
+            socket.close();
+        }
+        catch (IOException e){}
+
+    }
 }
